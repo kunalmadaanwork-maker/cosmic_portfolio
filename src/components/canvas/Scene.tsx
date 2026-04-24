@@ -6,7 +6,7 @@ import { PerspectiveCamera, Sphere, useTexture } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import CameraPath from "./CameraPath";
 import Astronaut from "./Astronaut";
-import World from "./world";
+import World from "./World";
 import * as THREE from "three";
 
 function Skybox() {

@@ -26,18 +26,27 @@ export default function Page() {
     });
   }, [smoothProgress]);
 
+  // --- THE FIX: THE LAUNCH HANDLER ---
+  const handleLaunch = () => {
+    // 1. Force the window to the absolute top immediately
+    window.scrollTo(0, 0); 
+    
+    // 2. Switch to voyage state
+    setStage("VOYAGE");
+  };
+
   return (
     <main className="relative w-full h-[1000vh] bg-black overflow-x-hidden">
       <AnimatePresence>
         {stage === "BOOT" && (
-          <BootSequence onComplete={() => setStage("VOYAGE")} />
+          // Pass the new handleLaunch function instead of setStage
+          <BootSequence onComplete={handleLaunch} />
         )}
       </AnimatePresence>
 
       {stage === "VOYAGE" && (
         <>
           <div className="fixed inset-0 z-0 bg-black">
-            {/* NO PROPS PASSED HERE - This matches the new Scene.tsx */}
             <Scene />
           </div>
           
