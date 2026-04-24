@@ -1,64 +1,178 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, forwardRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-export default function Astronaut() {
-  const groupRef = useRef<THREE.Group>(null);
+const Astronaut = forwardRef<THREE.Group>((_, ref) => {
   const headRef = useRef<THREE.Group>(null);
   const bodyRef = useRef<THREE.Group>(null);
+  const lArmRef = useRef<THREE.Mesh>(null);
+  const rArmRef = useRef<THREE.Mesh>(null);
+  const innerRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
-    if (!groupRef.current || !headRef.current || !bodyRef.current) return;
+    if (!innerRef.current || !headRef.current || !bodyRef.current) return;
 
-    // MOUSE LOOK: Map mouse -1 to 1 to rotation
-    const targetRotY = state.mouse.x * 0.6;
-    const targetRotX = -state.mouse.y * 0.3;
+    const t = state.clock.getElapsedTime();
 
-    // Smoothly rotate the body and head separately for a natural feel
-    bodyRef.current.rotation.y = THREE.MathUtils.lerp(bodyRef.current.rotation.y, targetRotY, 0.1);
-    headRef.current.rotation.y = THREE.MathUtils.lerp(headRef.current.rotation.y, targetRotY * 1.3, 0.1);
-    headRef.current.rotation.x = THREE.MathUtils.lerp(headRef.current.rotation.x, targetRotX, 0.1);
-    
-    // Idle float
-    groupRef.current.position.y = Math.sin(state.clock.getElapsedTime()) * 0.1;
+    // Idle bob and roll
+    innerRef.current.position.y = Math.sin(t * 0.9) * 0.12;
+    innerRef.current.rotation.z = Math.sin(t * 0.5) * 0.05;
+
+    // Mouse look
+    const targetRotY = state.mouse.x * 0.55;
+    const targetRotX = -state.mouse.y * 0.28;
+    bodyRef.current.rotation.y = THREE.MathUtils.lerp(
+      bodyRef.current.rotation.y,
+      targetRotY,
+      0.08
+    );
+    headRef.current.rotation.y = THREE.MathUtils.lerp(
+      headRef.current.rotation.y,
+      targetRotY * 1.4,
+      0.08
+    );
+    headRef.current.rotation.x = THREE.MathUtils.lerp(
+      headRef.current.rotation.x,
+      targetRotX,
+      0.08
+    );
+
+    // Arm sway
+    if (lArmRef.current)
+      lArmRef.current.rotation.z = -0.25 + Math.sin(t * 0.9) * 0.07;
+    if (rArmRef.current)
+      rArmRef.current.rotation.z = 0.25 - Math.sin(t * 0.9) * 0.07;
   });
 
-  return (
-    <group ref={groupRef}>
-      <group ref={bodyRef}>
-        {/* HEAVY TORSO */}
-        <mesh position={[0, 0, 0]} castShadow>
-          <boxGeometry args={[0.6, 0.8, 0.5]} />
-          <meshStandardMaterial color="#f8fafc" metalness={0.7} roughness={0.2} />
-        </mesh>
+  const suitMat = (
+    <meshStandardMaterial
+      color="#e2e8f0"
+      metalness={0.5}
+      roughness={0.35}
+    />
+  );
+  const darkMat = (
+    <meshStandardMaterial color="#475569" metalness={0.7} roughness={0.3} />
+  );
 
-        {/* GOLD VISOR HELMET */}
-        <group ref={headRef} position={[0, 0.7, 0]}>
-          <mesh castShadow>
-            <sphereGeometry args={[0.3, 32, 32]} />
-            <meshStandardMaterial color="#f8fafc" />
+  return (
+    <group ref={ref}>
+      <group ref={innerRef}>
+        <group ref={bodyRef}>
+          {/* Torso */}
+          <mesh castShadow position={[0, 0, 0]}>
+            <boxGeometry args={[0.64, 0.82, 0.52]} />
+            {suitMat}
           </mesh>
-          <mesh position={[0, 0, 0.1]}>
-            <sphereGeometry args={[0.22, 32, 32]} />
-            {/* Gold Reflective Visor */}
-            <meshStandardMaterial color="#ffcc33" metalness={1} roughness={0} />
+
+          {/* Chest detail stripe */}
+          <mesh position={[0, 0.1, 0.27]}>
+            <boxGeometry args={[0.3, 0.08, 0.01]} />
+            <meshStandardMaterial
+              color="#22d3ee"
+              emissive="#22d3ee"
+              emissiveIntensity={3}
+            />
+          </mesh>
+
+          {/* Life support pack */}
+          <mesh position={[0, 0.05, -0.32]} castShadow>
+            <boxGeometry args={[0.42, 0.62, 0.22]} />
+            {darkMat}
+          </mesh>
+          {/* Pack vents */}
+          {[-0.08, 0.08].map((x, i) => (
+            <mesh key={i} position={[x, -0.1, -0.44]}>
+              <boxGeometry args={[0.06, 0.28, 0.04]} />
+              <meshStandardMaterial
+                color="#22d3ee"
+                emissive="#22d3ee"
+                emissiveIntensity={2}
+              />
+            </mesh>
+          ))}
+
+          {/* Helmet */}
+          <group ref={headRef} position={[0, 0.64, 0]}>
+            <mesh castShadow>
+              <sphereGeometry args={[0.28, 48, 48]} />
+              {suitMat}
+            </mesh>
+            {/* Gold visor */}
+            <mesh position={[0, 0.02, 0.14]}>
+              <sphereGeometry args={[0.195, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.6]} />
+              <meshStandardMaterial
+                color="#fbbf24"
+                metalness={1}
+                roughness={0}
+                envMapIntensity={2}
+              />
+            </mesh>
+            {/* Helmet light */}
+            <pointLight
+              position={[0, 0, 0.3]}
+              intensity={1.5}
+              distance={8}
+              color="#fbbf24"
+            />
+          </group>
+
+          {/* Arms */}
+          <mesh
+            ref={lArmRef}
+            position={[-0.42, 0.15, 0]}
+            rotation={[0, 0, -0.25]}
+            castShadow
+          >
+            <capsuleGeometry args={[0.1, 0.44, 4, 8]} />
+            {suitMat}
+          </mesh>
+          <mesh
+            ref={rArmRef}
+            position={[0.42, 0.15, 0]}
+            rotation={[0, 0, 0.25]}
+            castShadow
+          >
+            <capsuleGeometry args={[0.1, 0.44, 4, 8]} />
+            {suitMat}
+          </mesh>
+
+          {/* Gloves */}
+          <mesh position={[-0.44, -0.15, 0]}>
+            <sphereGeometry args={[0.11, 16, 16]} />
+            <meshStandardMaterial color="#1e293b" metalness={0.5} />
+          </mesh>
+          <mesh position={[0.44, -0.15, 0]}>
+            <sphereGeometry args={[0.11, 16, 16]} />
+            <meshStandardMaterial color="#1e293b" metalness={0.5} />
+          </mesh>
+
+          {/* Legs */}
+          <mesh position={[-0.18, -0.62, 0]} castShadow>
+            <capsuleGeometry args={[0.13, 0.46, 4, 8]} />
+            <meshStandardMaterial color="#cbd5e1" metalness={0.3} roughness={0.4} />
+          </mesh>
+          <mesh position={[0.18, -0.62, 0]} castShadow>
+            <capsuleGeometry args={[0.13, 0.46, 4, 8]} />
+            <meshStandardMaterial color="#cbd5e1" metalness={0.3} roughness={0.4} />
+          </mesh>
+
+          {/* Boots */}
+          <mesh position={[-0.18, -0.95, 0.05]}>
+            <boxGeometry args={[0.22, 0.14, 0.32]} />
+            <meshStandardMaterial color="#334155" metalness={0.6} />
+          </mesh>
+          <mesh position={[0.18, -0.95, 0.05]}>
+            <boxGeometry args={[0.22, 0.14, 0.32]} />
+            <meshStandardMaterial color="#334155" metalness={0.6} />
           </mesh>
         </group>
-
-        {/* ARMS & LEGS (Structured) */}
-        <mesh position={[0.4, 0.2, 0]} rotation={[0, 0, 0.2]}><capsuleGeometry args={[0.1, 0.4, 4, 8]} /><meshStandardMaterial color="#f8fafc" /></mesh>
-        <mesh position={[-0.4, 0.2, 0]} rotation={[0, 0, -0.2]}><capsuleGeometry args={[0.1, 0.4, 4, 8]} /><meshStandardMaterial color="#f8fafc" /></mesh>
-        <mesh position={[0.2, -0.6, 0]}><capsuleGeometry args={[0.15, 0.5, 4, 8]} /><meshStandardMaterial color="#cbd5e1" /></mesh>
-        <mesh position={[-0.2, -0.6, 0]}><capsuleGeometry args={[0.15, 0.5, 4, 8]} /><meshStandardMaterial color="#cbd5e1" /></mesh>
-
-        {/* LIFE SUPPORT PACK */}
-        <mesh position={[0, 0.1, -0.3]}>
-          <boxGeometry args={[0.4, 0.6, 0.3]} />
-          <meshStandardMaterial color="#64748b" metalness={0.8} />
-        </mesh>
       </group>
     </group>
   );
-}
+});
+
+Astronaut.displayName = "Astronaut";
+export default Astronaut;
