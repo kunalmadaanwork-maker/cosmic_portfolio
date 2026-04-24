@@ -2,14 +2,17 @@
 
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useScroll } from "framer-motion"; 
+import { useScroll, useSpring } from "framer-motion"; 
 import { useMemo, useRef } from "react";
 
 export default function CameraPath({ astronautRef }: { astronautRef: any }) {
   const { scrollYProgress } = useScroll();
   
-  // We use a ref to track the "current" position to avoid React re-renders
-  const currentT = useRef(0);
+  //- Buttery smooth interpolation
+  const smoothProgress = useSpring(scrollYProgress, { 
+    stiffness: 40, 
+    damping: 20 
+  });
 
   const curve = useMemo(() => {
     return new THREE.CatmullRomCurve3([
@@ -21,22 +24,16 @@ export default function CameraPath({ astronautRef }: { astronautRef: any }) {
     ]);
   }, []);
 
-  useFrame((state, delta) => {
-    // 1. SMOOTHING: Instead of a Spring, we use a linear interpolation (lerp)
-    // This removes the "jitter" and makes the movement feel like it's on rails.
-    const targetT = scrollYProgress.get();
-    currentT.current = THREE.MathUtils.lerp(currentT.current, targetT, 0.1);
-
-    const t = currentT.current;
+  useFrame((state) => {
+    const t = smoothProgress.get();
     const position = curve.getPointAt(t);
 
-    // 2. MOVE ASTRONAUT
+    // SAFETY CHECK: Only move if the astronaut is actually rendered
     if (astronautRef.current) {
       astronautRef.current.position.copy(position);
     }
 
-    // 3. CAMERA CHASE
-    // We use a fixed offset but lerp the camera position for that "heavy" cinematic feel
+    // Camera Follow Logic (Chase Cam)
     const offset = new THREE.Vector3(0, 3, 10); 
     const desiredPosition = new THREE.Vector3().copy(position).add(offset);
     

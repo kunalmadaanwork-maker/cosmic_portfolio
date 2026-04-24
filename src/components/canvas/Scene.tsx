@@ -1,29 +1,23 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
+import React, { useRef, useMemo, Suspense } from "react";
+import { Canvas, useFrame } from "@react-three/fiber"; // <--- IMPORT useFrame HERE
 import { PerspectiveCamera, Sphere, useTexture } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import CameraPath from "./CameraPath";
 import Astronaut from "./Astronaut";
 import World from "./world";
 import * as THREE from "three";
-import { useRef, useMemo, Suspense } from "react";
-
-// --- Loading Fallback Component ---
-function Loader() {
-  return (
-    <mesh>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="cyan" />
-    </mesh>
-  );
-}
 
 function Skybox() {
-  // Ensure this file exists exactly at /public/universe_bg.jpg
   const texture = useTexture("/universe_bg.jpg");
   const skyRef = useRef<THREE.Mesh>(null);
   
+  // CORRECTED: Use useFrame directly, NOT React.useFrame
+  useFrame((state, delta) => {
+    if (skyRef.current) skyRef.current.rotation.y += delta * 0.001;
+  });
+
   return (
     <Sphere ref={skyRef} args={[1000, 60, 40]} scale={[-1, 1, 1]}>
       <meshBasicMaterial map={texture} side={THREE.BackSide} />
@@ -32,7 +26,7 @@ function Skybox() {
 }
 
 function GlowingStars() {
-  const count = 3000;
+  const count = 4000;
   const starTexture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 64; canvas.height = 64;
@@ -65,7 +59,7 @@ export default function Scene() {
 
   return (
     <Canvas 
-      style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'none' }} 
+      style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', pointerEvents: 'auto' }} 
       gl={{ antialias: true, powerPreference: "high-performance" }}
     >
       <fogExp2 args={["#020617", 0.001]} attach="fog" />
@@ -74,8 +68,7 @@ export default function Scene() {
       <directionalLight position={[10, 20, 5]} intensity={2} color="#ffffff" />
       <ambientLight intensity={0.4} />
       
-      {/* THE FIX: Wrap everything that uses textures in Suspense */}
-      <Suspense fallback={<Loader />}>
+      <Suspense fallback={null}>
         <Skybox />
         <GlowingStars />
         <World />
@@ -88,7 +81,7 @@ export default function Scene() {
       <CameraPath astronautRef={astronautRef} />
 
       <EffectComposer>
-        <Bloom intensity={1.5} luminanceThreshold={0.1} luminanceSmoothing={0.9} />
+        <Bloom intensity={1.2} luminanceThreshold={0.1} luminanceSmoothing={0.9} />
       </EffectComposer>
     </Canvas>
   );
