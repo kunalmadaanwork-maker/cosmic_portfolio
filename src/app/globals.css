@@ -1,29 +1,78 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --font-mono: var(--font-jetbrains-mono);
-  --font-sans: var(--font-inter);
-}
-
-body {
+/* ── Base reset ─────────────────────────────────────────────── */
+html, body {
   margin: 0;
   padding: 0;
-  background-color: #000;
-  color: #fff;
+  width: 100%;
+  background-color: #000000 !important;
+  color: #ffffff;
   overflow-x: hidden;
-  cursor: none; /* We will implement a custom cursor later */
+  /* Hide default cursor – we use a custom one */
+  cursor: none;
 }
 
-/* Hide scrollbar completely */
-::-webkit-scrollbar {
-  display: none;
-}
-body {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-.font-mono { font-family: var(--font-mono); }
-.font-sans { font-family: var(--font-sans); }
+/* ── Font utility classes ────────────────────────────────────── */
+.font-display { font-family: var(--font-display), "Bebas Neue", sans-serif; }
+.font-mono    { font-family: var(--font-mono),    "Space Mono", monospace;  }
+.font-sans    { font-family: var(--font-sans),    "DM Sans",    sans-serif; }
+
+/* ── Custom scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar       { width: 3px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.25); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.5); }
+
+/* ── No-scrollbar utility ───────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Scanline texture (applied as ::after on containers) ─────── */
+.scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.025) 2px,
+    rgba(0, 0, 0, 0.025) 4px
+  );
+  pointer-events: none;
+  z-index: 9989;
+}
+
+/* ── Astronaut bounce animation (used in Loader) ──────────────
+   Defined here as a global so the inline <style> in Loader.tsx
+   isn't needed – but keeping it there too for component isolation. */
+@keyframes moonBounce {
+  0%, 100% { transform: translateY(0px)   rotate(-3deg); }
+  45%, 55% { transform: translateY(-52px) rotate( 3deg); }
+}
+@keyframes shadowPulse {
+  0%, 100% { transform: scaleX(1);   opacity: 0.5; }
+  50%       { transform: scaleX(0.4); opacity: 0.2; }
+}
+@keyframes dustL {
+  0%   { transform: translate(0, 0)       scale(1);   opacity: 0.6; }
+  100% { transform: translate(-22px, -8px) scale(0);  opacity: 0;   }
+}
+@keyframes dustR {
+  0%   { transform: translate(0, 0)      scale(1);   opacity: 0.6; }
+  100% { transform: translate(22px, -8px) scale(0);  opacity: 0;   }
+}
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 1;   }
+}
+
+/* ── Smooth text rendering ───────────────────────────────────── */
+* {
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

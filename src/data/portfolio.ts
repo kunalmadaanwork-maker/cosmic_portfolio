@@ -1,66 +1,87 @@
+// ─────────────────────────────────────────────────────────────
+//  PORTFOLIO DATA  –  single source of truth
+// ─────────────────────────────────────────────────────────────
+
 export const portfolioData = {
   name: "Kunal Madaan",
   role: "Full Stack Developer",
-  tagline: "Architecting scalable web solutions at the intersection of quantitative logic and creative engineering.",
+  tagline: "Building scalable universes, one commit at a time.",
   about:
-    "I build high-performance digital experiences using React, Next.js, Three.js, and Node.js. Passionate about the boundary between engineering precision and creative storytelling — turning complex problems into elegant, immersive solutions.",
+    "I architect high-performance web experiences at the intersection of engineering precision and creative vision. Specialising in React, Next.js, Three.js and Node.js — turning complex problems into elegant, immersive products.",
+
   contact: {
     email: "kunal@example.com",
     github: "https://github.com/kunalmadaanwork-maker",
     linkedin: "https://linkedin.com/in/kunal-madaan",
   },
+
+  skills: [
+    "React / Next.js",
+    "TypeScript",
+    "Three.js / R3F",
+    "Node.js",
+    "PostgreSQL",
+    "GraphQL",
+    "GSAP",
+    "WebGL / GLSL",
+    "Docker",
+    "AWS",
+  ],
+
+  // Each project maps to a world object in the 3-D scene
   projects: [
     {
       id: 1,
       title: "Nebula UI",
       category: "Full Stack · React · Next.js",
       description:
-        "A high-performance SaaS dashboard with real-time data streams, WebSocket sync, and sub-100ms UI interactions. Built a custom component library reducing bundle size by 40%.",
-      tech: ["Next.js", "TypeScript", "WebSockets", "Postgres"],
+        "A SaaS analytics dashboard with real-time WebSocket streams, custom component library, and sub-100 ms interactions. Reduced bundle size by 40 % through code-splitting and tree-shaking.",
+      tech: ["Next.js", "TypeScript", "WebSockets", "Postgres", "Redis"],
       link: "https://github.com/kunalmadaanwork-maker",
-      color: "#22d3ee",
+      accentColor: "#38bdf8", // sky blue  → planet 1
     },
     {
       id: 2,
       title: "Orbit Engine",
-      category: "Frontend Architecture · WebGL",
+      category: "Frontend · WebGL · GSAP",
       description:
-        "A physics-based 3D data visualization tool. Custom GLSL shaders, GPGPU particle systems, and a GSAP-driven animation orchestrator for storytelling through data.",
+        "Physics-based 3-D data-visualisation tool with custom GLSL shaders, GPGPU particle systems, and a GSAP-driven animation orchestrator for storytelling through data.",
       tech: ["Three.js", "GLSL", "GSAP", "React Three Fiber"],
       link: "https://github.com/kunalmadaanwork-maker",
-      color: "#7c3aed",
+      accentColor: "#a78bfa", // violet    → nebula
     },
     {
       id: 3,
       title: "Singularity API",
       category: "Backend · Node.js · GraphQL",
       description:
-        "A distributed microservices platform handling 50k+ daily requests. Redis caching, Kafka event streams, and a GraphQL gateway unifying 6 internal services.",
-      tech: ["Node.js", "GraphQL", "Redis", "Kafka"],
+        "Distributed microservices platform handling 50 k+ daily requests. Redis caching, Kafka event streams, and a GraphQL gateway unifying six internal services with zero-downtime deploys.",
+      tech: ["Node.js", "GraphQL", "Redis", "Kafka", "Docker"],
       link: "https://github.com/kunalmadaanwork-maker",
-      color: "#f59e0b",
+      accentColor: "#fb923c", // orange    → black-hole zone
     },
   ],
+
   experience: [
     {
-      year: "2023–Now",
+      year: "2023 – Now",
       role: "Full Stack Developer",
-      company: "Freelance / Self-Employed",
-      desc: "Delivering end-to-end web products for international clients. Specializing in React ecosystems and 3D web experiences.",
+      company: "Freelance",
+      desc: "End-to-end web products for international clients; specialising in React ecosystems and 3-D web experiences.",
     },
     {
       year: "2022",
       role: "Frontend Intern",
       company: "Tech Corp",
-      desc: "Built interactive dashboards and design-system components used by 20k+ users.",
+      desc: "Built interactive dashboards and design-system components used by 20 k+ users.",
     },
     {
       year: "2021",
       role: "B.Tech CSE",
       company: "University",
-      desc: "Computer Science fundamentals — algorithms, OS, networks, and distributed systems.",
+      desc: "Computer Science fundamentals — algorithms, OS, networks, distributed systems.",
     },
   ],
 };
 
-export type PortfolioProject = (typeof portfolioData.projects)[number];
+export type Project = (typeof portfolioData.projects)[number];
