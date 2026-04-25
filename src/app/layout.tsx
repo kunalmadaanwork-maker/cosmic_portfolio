@@ -1,41 +1,19 @@
 import type { Metadata } from "next";
-import { Space_Mono, Bebas_Neue } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const spaceMono = Space_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-});
-
-const bebasNeue = Bebas_Neue({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: "400",
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Kunal Madaan — Full Stack Developer",
-  description:
-    "Interactive 3D portfolio — architecting scalable web solutions at the intersection of logic and creative engineering.",
-  openGraph: {
-    title: "Kunal Madaan — Full Stack Developer",
-    description: "Scroll through space to explore my work.",
-    type: "website",
-  },
+  title: "Kunal Madaan | The Kingdom of Science",
+  description: "A Cinematic Journey through the Portfolio of a Full Stack Architect",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${spaceMono.variable} ${bebasNeue.variable} h-full antialiased`}
-    >
-      <body className="min-h-full bg-black text-white overflow-x-hidden">
+    <html lang="en" className="bg-black">
+      <body className={`${inter.variable} ${jetbrains.variable} font-sans antialiased bg-black`}>
         {children}
       </body>
     </html>
