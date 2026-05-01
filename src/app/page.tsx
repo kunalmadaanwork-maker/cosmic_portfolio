@@ -55,7 +55,7 @@ function Cursor() {
       window.removeEventListener("mousemove", move);
       cancelAnimationFrame(raf.current);
     };
-  }, []);
+  },[]);
 
   return (
     <>
@@ -74,8 +74,10 @@ function Cursor() {
 }
 
 // ── Page ──────────────────────────────────────────────────────
+type Stage = "LOADING" | "VOYAGE";
+
 export default function Page() {
-  const [stage, setStage] = useState<"LOADING" | "VOYAGE">("LOADING");
+  const [stage, setStage] = useState<Stage>("LOADING");
   const [activeZone, setActiveZone] = useState<string | null>(null);
 
   // THE single scroll engine – lives here, shared via ref
@@ -95,11 +97,11 @@ export default function Page() {
 
   const handleLoadComplete = useCallback(() => {
     setStage("VOYAGE");
-  }, []);
+  },[]);
 
   const handleZoneChange = useCallback((zone: string | null) => {
     setActiveZone(zone);
-  }, []);
+  },[]);
 
   return (
     <>

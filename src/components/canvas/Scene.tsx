@@ -1,98 +1,49 @@
-// ─────────────────────────────────────────────────────────────
-//  Scene  –  R3F Canvas root
-//  Dynamically imported in page.tsx to avoid SSR issues.
-// ─────────────────────────────────────────────────────────────
+// components/canvas/Scene.tsx
 "use client";
 
-import React, { useRef, Suspense } from "react";
+import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { PerspectiveCamera } from "@react-three/drei";
-import { EffectComposer, Bloom, Vignette, ChromaticAberration } from "@react-three/postprocessing";
-import { BlendFunction } from "postprocessing";
-import * as THREE from "three";
 
-import FlightController from "./FlightController";
-import Astronaut        from "./Astronaut";
-import World            from "./World";
-import CityLaunch       from "./CityLaunch";
-import ParticleField    from "./ParticleField";
+// MUST HAVE BRACKETS: These are named exports from the library
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 
-interface SceneProps {
-  progressRef:  React.MutableRefObject<number>;
-  onZoneChange: (zone: string | null) => void;
-}
+// MUST HAVE BRACKETS: This is a named export from your store
+import { useVoyageStore } from "@/store/useVoyageStore";
 
-export default function Scene({ progressRef, onZoneChange }: SceneProps) {
-  const astronautRef = useRef<THREE.Group>(null);
+// MUST HAVE NO BRACKETS: These are Default exports from your files
+import CinematicController from "./CinematicController";
+import Astronaut from "./Astronaut";
+import LaunchPad from "./zones/LaunchPad"; 
+import Singularity from "./zones/Singularity";
+
+export default function Scene() {
+  const phase = useVoyageStore((state) => state.phase);
+  const bloomIntensity = useVoyageStore((state) => state.bloomIntensity);
+  const bloomThreshold = useVoyageStore((state) => state.bloomThreshold);
 
   return (
     <Canvas
-      gl={{
-        antialias: true,
-        powerPreference: "high-performance",
-        toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.1,
-      }}
-      dpr={[1, 1.5]}          // cap at 1.5× for performance
-      shadows={false}          // disabled for perf; emissive materials look great without
+      gl={{ antialias: true, powerPreference: "high-performance" }}
+      camera={{ position: [0, 2, 15], fov: 60 }}
     >
-      {/* Explicit black background – prevents any white flash */}
       <color attach="background" args={["#000000"]} />
-      <fogExp2 attach="fog" args={["#010206", 0.0007]} />
+      
+      {/* If the error persists, comment these out one-by-one to find the culprit */}
+      <CinematicController />
+      <Astronaut />
 
-      <PerspectiveCamera
-        makeDefault
-        position={[0, -57, 10]}  // starts inside the city
-        fov={68}
-        near={0.2}
-        far={6000}
-      />
-
-      {/* Lighting */}
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[60, 100, 40]} intensity={1.2} color="#dde8ff" />
-      <pointLight position={[-80, 40, -200]} intensity={3}   color="#7c3aed" />
-      <pointLight position={[ 80, -30, -400]} intensity={2}  color="#38bdf8" />
-
-      {/* ── Scene objects ─────────────────────────────────── */}
       <Suspense fallback={null}>
-        {/* Lightweight star field  */}
-        <ParticleField count={4000} spread={2500} zOffset={-600} size={1.5} />
-        {/* Extra close stars (more density near launch) */}
-        <ParticleField count={800}  spread={400}  zOffset={0}    size={1.0} color="#ffe8c0" drift={0} />
-
-        {/* City + atmosphere – visible during launch phase */}
-        <CityLaunch progress={progressRef} />
-
-        {/* Narrative world objects */}
-        <World />
+        {(phase === 'PAD' || phase === 'LIFTOFF') && <LaunchPad />}
+        {phase === 'SINGULARITY' && <Singularity />}
       </Suspense>
 
-      {/* Astronaut group (moved by FlightController) */}
-      <group ref={astronautRef}>
-        <Astronaut />
-      </group>
-
-      {/* Flight logic – no JSX output, purely drives transforms */}
-      <FlightController
-        astronautRef={astronautRef}
-        progressRef={progressRef}
-        onZoneChange={onZoneChange}
-      />
-
-      {/* Post-processing */}
       <EffectComposer>
-        <Bloom
-          intensity={1.3}
-          luminanceThreshold={0.05}
-          luminanceSmoothing={0.8}
-          mipmapBlur
+        <Bloom 
+          intensity={bloomIntensity} 
+          luminanceThreshold={bloomThreshold} 
+          luminanceSmoothing={0.9} 
+          mipmapBlur 
         />
-        <ChromaticAberration
-          blendFunction={BlendFunction.NORMAL}
-          offset={new THREE.Vector2(0.0003, 0.0003)}
-        />
-        <Vignette eskil={false} offset={0.3} darkness={0.65} />
       </EffectComposer>
     </Canvas>
   );

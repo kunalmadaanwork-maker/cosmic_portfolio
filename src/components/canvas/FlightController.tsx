@@ -53,14 +53,13 @@ export default function FlightController({
         new THREE.Vector3(  0,   0, -985),  // 0.82 BH proximity ← auto-scroll fires
         new THREE.Vector3( -8,   6,-1100),  // 0.90 ejected from BH
         new THREE.Vector3(  0,   2,-1250),  // 1.00 deep space / contact
-      ], false, "catmullrom", 0.5),
-    []
+      ], false, "catmullrom", 0.5),[]
   );
 
   const smoothT     = useRef(0);
   const lastZone    = useRef<string | null>(null);
   const lastMounts  = useRef<string>("");   // serialised set for cheap compare
-  const OFFSET      = useMemo(() => new THREE.Vector3(0, 2.5, 9), []);
+  const OFFSET      = useMemo(() => new THREE.Vector3(0, 2.5, 9),[]);
   const LOOK_AHEAD  = 0.012;
 
   // ── Cancel auto-scroll if user manually scrolls ────────────
@@ -78,7 +77,7 @@ export default function FlightController({
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  },[]);
 
   useFrame((state, delta) => {
     // ── 1. Auto-scroll: gravitational pull toward black hole ──

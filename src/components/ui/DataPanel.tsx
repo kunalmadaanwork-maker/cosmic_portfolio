@@ -197,6 +197,10 @@ function ExperiencePanel() {
 
 // ── Zone: contact ─────────────────────────────────────────────
 function ContactPanel() {
+  const handleRestart = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <FadePanel id="contact" position="center">
       <div className="text-center">
@@ -206,14 +210,16 @@ function ContactPanel() {
         <h2 className="font-display text-5xl uppercase text-white leading-none mb-2">
           Let's build
         </h2>
-        <h2 className="font-display text-5xl uppercase leading-none mb-5"
-          style={{ color: "#a78bfa" }}>
+        <h2
+          className="font-display text-5xl uppercase leading-none mb-5"
+          style={{ color: "#a78bfa" }}
+        >
           something cosmic
         </h2>
         <p className="font-sans text-sm text-white/40 mb-8 max-w-[240px] mx-auto leading-relaxed">
           Open to new missions. Send a transmission.
         </p>
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-3 justify-center mb-6">
           <a
             href={`mailto:${portfolioData.contact.email}`}
             className="font-mono text-[10px] uppercase tracking-widest px-6 py-3 border border-violet-500/50 text-violet-300 hover:bg-violet-500/10 transition-colors duration-300"
@@ -229,6 +235,13 @@ function ContactPanel() {
             GitHub ↗
           </a>
         </div>
+        <button
+          onClick={handleRestart}
+          className="font-mono text-[9px] uppercase tracking-[0.25em] text-white/20 hover:text-white/50 transition-colors duration-300 flex items-center gap-2 mx-auto"
+        >
+          <span style={{ fontSize: 10 }}>↑</span>
+          Restart Mission
+        </button>
       </div>
     </FadePanel>
   );

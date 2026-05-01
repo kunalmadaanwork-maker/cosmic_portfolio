@@ -1,16 +1,6 @@
-// ─────────────────────────────────────────────────────────────
-//  useScrollEngine  –  single source of scroll truth
-//
-//  Returns a ref whose `.current` is ALWAYS the latest smoothed
-//  progress value (0 → 1).  Safe to read inside R3F useFrame
-//  without stale closures or spring/spring lag.
-//
-//  Smoothing is done in a rAF loop using a simple lerp so it
-//  *never* conflicts with Three.js's own render loop.
-// ─────────────────────────────────────────────────────────────
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 export interface ScrollEngine {
   /** Latest SMOOTHED progress 0→1 – read this inside useFrame */
@@ -37,17 +27,16 @@ export function useScrollEngine(smoothing = 0.06): ScrollEngine {
     onScroll(); // initialise immediately
 
     // ── 2. Smooth in rAF (independent of Three.js) ──────────
-    //  Using a fixed lerp factor per frame gives Sebastian-style
-    //  cinematic smoothing without framer-motion springs.
+    //  Using a fixed lerp factor per frame gives cinematic smoothing
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
     let lastTime = performance.now();
 
     const tick = (now: number) => {
-      const delta = Math.min((now - lastTime) / 16.667, 3); // cap at 3× to avoid huge jumps after tab switch
+      const delta = Math.min((now - lastTime) / 16.667, 3); // cap at 3×
       lastTime = now;
 
-      // delta-compensated lerp so smoothing is frame-rate independent
+      // delta-compensated lerp
       const factor = 1 - Math.pow(1 - smoothing, delta);
       progressRef.current = lerp(progressRef.current, rawRef.current, factor);
 
@@ -76,7 +65,7 @@ export interface Zone {
 }
 
 /** All narrative zones along the scroll journey (0 → 1) */
-export const ZONES: Zone[] = [
+export const ZONES: Zone[] =[
   { id: "launch",    enter: 0.00, exit: 0.14 }, // city → atmosphere
   { id: "void",      enter: 0.15, exit: 0.28 }, // "who I am"
   { id: "project-1", enter: 0.30, exit: 0.43 }, // planet 1
@@ -101,4 +90,21 @@ export function zoneAlpha(zone: Zone, progress: number): number {
   const fadeIn  = Math.min((progress - zone.enter) / fadeDuration, 1);
   const fadeOut = Math.min((zone.exit - progress)  / fadeDuration, 1);
   return Math.min(fadeIn, fadeOut);
+}
+
+export function getActiveMounts(progress: number): Set<string> {
+  const mounts = new Set<string>();
+
+  // Using overlapping ranges to ensure models mount slightly before they are seen 
+  // and unmount slightly after passing, to prevent visual pop-in/pop-out.
+  if (progress >= 0.00 && progress <= 0.16) mounts.add("city");
+  if (progress >= 0.13 && progress <= 0.26) mounts.add("wormhole-1");
+  if (progress >= 0.18 && progress <= 0.48) mounts.add("planet");
+  if (progress >= 0.38 && progress <= 0.52) mounts.add("wormhole-2");
+  if (progress >= 0.44 && progress <= 0.72) mounts.add("nebula");
+  if (progress >= 0.58 && progress <= 0.78) mounts.add("crystals");
+  if (progress >= 0.68 && progress <= 0.82) mounts.add("wormhole-3");
+  if (progress >= 0.74 && progress <= 1.00) mounts.add("blackhole");
+
+  return mounts;
 }
