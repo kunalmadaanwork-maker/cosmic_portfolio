@@ -1,5 +1,9 @@
-#Global.css#
+//src/app/global.css
 @import "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ── Base reset ─────────────────────────────────────────────── */
 html, body {
@@ -78,12 +82,12 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-#layout.tsx#
-// layout.tsx — fixed font variables + no stray className issues
+// src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import { Bebas_Neue, Space_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 
+// 1. Initialize the fonts (This is what your editor says is missing)
 const bebasNeue = Bebas_Neue({
   variable: "--font-display",
   subsets: ["latin"],
@@ -93,7 +97,7 @@ const bebasNeue = Bebas_Neue({
 
 const spaceMono = Space_Mono({
   variable: "--font-mono",
-  subsets: ["latin"],
+  subsets:["latin"],
   weight: ["400", "700"],
   display: "swap",
 });
@@ -105,6 +109,7 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
+// 2. Metadata
 export const metadata: Metadata = {
   title: "Kunal Madaan — Full Stack Developer",
   description:
@@ -115,6 +120,7 @@ export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
+// 3. Root Layout (With Hydration Fixes)
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -122,8 +128,10 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${bebasNeue.variable} ${spaceMono.variable} ${dmSans.variable}`}
+      suppressHydrationWarning // <-- Hydration fix
     >
       <body
+        suppressHydrationWarning // <-- Hydration fix
         style={{
           margin: 0,
           padding: 0,
@@ -140,130 +148,51 @@ export default function RootLayout({
   );
 }
 
-#page.tsx#
-// page.tsx — all Tailwind classes replaced with inline styles (Tailwind v4 safe)
+//src/app/page.tsx
+
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 
 import Loader      from "@/components/ui/Loader";
 import HUD_Overlay from "@/components/ui/HUD_Overlay";
 import DataPanels  from "@/components/ui/DataPanel";
-import { useScrollEngine } from "@/hooks/useScrollEngine";
+import { useVoyageStore } from "@/store/useVoyageStore"; // <-- Use the new store
 
 const Scene = dynamic(() => import("@/components/canvas/Scene"), { ssr: false });
 
-// ── Custom cursor — 100% inline styles, zero Tailwind ──────────
-function Cursor() {
-  const dotRef  = useRef<HTMLDivElement>(null);
-  const ringRef = useRef<HTMLDivElement>(null);
-  const mx = useRef(0), my = useRef(0);
-  const rx = useRef(0), ry = useRef(0);
-  const raf = useRef<number>(0);
-
-  useEffect(() => {
-    const move = (e: MouseEvent) => {
-      mx.current = e.clientX;
-      my.current = e.clientY;
-    };
-    window.addEventListener("mousemove", move);
-
-    const tick = () => {
-      if (dotRef.current) {
-        dotRef.current.style.transform = `translate(${mx.current - 4}px, ${my.current - 4}px)`;
-      }
-      rx.current += (mx.current - rx.current) * 0.1;
-      ry.current += (my.current - ry.current) * 0.1;
-      if (ringRef.current) {
-        ringRef.current.style.transform = `translate(${rx.current - 18}px, ${ry.current - 18}px)`;
-      }
-      raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("mousemove", move);
-      cancelAnimationFrame(raf.current);
-    };
-  }, []);
-
-  return (
-    <>
-      <div
-        ref={dotRef}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          backgroundColor: "#38bdf8",
-          pointerEvents: "none",
-          zIndex: 9999,
-          willChange: "transform",
-          mixBlendMode: "screen",
-        }}
-      />
-      <div
-        ref={ringRef}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: 36,
-          height: 36,
-          borderRadius: "50%",
-          border: "1px solid rgba(56,189,248,0.35)",
-          pointerEvents: "none",
-          zIndex: 9998,
-          willChange: "transform",
-        }}
-      />
-    </>
-  );
-}
-
-// ── Page ───────────────────────────────────────────────────────
 export default function Page() {
-  const [stage, setStage]       = useState<"LOADING" | "VOYAGE">("LOADING");
-  const [activeZone, setActiveZone] = useState<string | null>(null);
+  const phase = useVoyageStore((state) => state.phase);
+  const setPhase = useVoyageStore((state) => state.setPhase);
 
-  const { progressRef } = useScrollEngine(0.055);
-
-  // Lock scroll during loading
-  useEffect(() => {
-    if (stage === "LOADING") {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "auto";
-      window.scrollTo(0, 0);
-    }
-    return () => { document.body.style.overflow = "auto"; };
-  }, [stage]);
-
-  const handleLoadComplete = useCallback(() => setStage("VOYAGE"), []);
-  const handleZoneChange   = useCallback((zone: string | null) => setActiveZone(zone), []);
+  // Map the new Zustand phases to your DataPanel active zones
+  let activeZone = null;
+  if (phase === 'VOID') activeZone = 'void';
+  else if (phase === 'PLANET') activeZone = 'project-1';
+  else if (phase === 'NEBULA') activeZone = 'project-2';
+  else if (phase === 'SINGULARITY') activeZone = 'contact';
 
   return (
     <>
-      <Cursor />
-
       <AnimatePresence>
-        {stage === "LOADING" && <Loader onComplete={handleLoadComplete} />}
+        {phase === 'LOADING' && <Loader onComplete={() => setPhase('PAD')} />}
       </AnimatePresence>
 
-      {stage === "VOYAGE" && (
-        <main style={{ position: "relative", width: "100%", height: "1000vh", backgroundColor: "#000" }}>
-
-          {/* 3-D canvas fixed behind everything */}
-          <div style={{ position: "fixed", inset: 0, zIndex: 0 }}>
-            <Scene progressRef={progressRef} onZoneChange={handleZoneChange} />
+      {phase !== 'LOADING' && (
+        <main style={{ position: "relative", width: "100%", height: "100vh", backgroundColor: "#000", overflow: "hidden" }}>
+          
+          {/* 3-D canvas – fixed behind everything */}
+          <div className="fixed inset-0 z-0">
+             {/* No props needed! Scene reads directly from Zustand */}
+            <Scene />
           </div>
 
+          {/* Ambient HUD overlay */}
           <HUD_Overlay />
+
+          {/* Content panels */}
           <DataPanels activeZone={activeZone} />
         </main>
       )}
@@ -271,18 +200,273 @@ export default function Page() {
   );
 }
 
-#Astronaut.tsx#
-
-// ─────────────────────────────────────────────────────────────
-//  Astronaut  –  procedural low-poly astronaut
-//  Exported with forwardRef so FlightController can move it.
-// ─────────────────────────────────────────────────────────────
+// components/canvas/zones/LaunchPad.tsx
 "use client";
 
-import { useRef, forwardRef } from "react";
+import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
+import { Environment, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
+const oceanVertexShader = `
+  varying vec2 vUv;
+  uniform float uTime;
+  float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
+  float noise(vec2 st) { return random(st); }
+  float fbm(vec2 st) {
+      float value = 0.0;
+      float amplitude = 0.5;
+      for (int i = 0; i < 4; i++) {
+          value += amplitude * noise(st);
+          st *= 2.0;
+          amplitude *= 0.5;
+      }
+      return value;
+  }
+  void main() {
+    vUv = uv;
+    vec3 pos = position;
+    pos.z += fbm(pos.xy * 0.05 + uTime * 0.2) * 2.5;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+const oceanFragmentShader = `
+  varying vec2 vUv;
+  void main() {
+    gl_FragColor = vec4(0.02, 0.05, 0.1, 0.9);
+  }
+`;
+
+export default function LaunchPad() {
+  // If you don't have this GLB yet, comment this line out temporarily!
+  // const { scene: rocket } = useGLTF("/assets/models/rocket-draco.glb");
+  const oceanMaterialRef = useRef<THREE.ShaderMaterial>(null);
+
+  useFrame((state) => {
+    if (oceanMaterialRef.current) {
+      oceanMaterialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    }
+  });
+
+  return (
+    <group>
+      <Environment preset="sunset" background={true} environmentIntensity={0.8} />
+      {/* <primitive object={rocket} position={[0, 0, -20]} /> */}
+      
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
+        <planeGeometry args={[1000, 1000, 128, 128]} />
+        <shaderMaterial 
+          ref={oceanMaterialRef}
+          vertexShader={oceanVertexShader}
+          fragmentShader={oceanFragmentShader}
+          uniforms={{ uTime: { value: 0 } }}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+//src/components/canvas/zone/singularity.tsx
+
+"use client";
+
+import { useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { RoundedBox, Html } from "@react-three/drei";
+import * as THREE from "three";
+import gsap from "gsap";
+import { useVoyageStore } from "@/store/useVoyageStore";
+
+// ─── 1. TESSERACT SHADERS ──────────────────────────────────────────
+const tesseractVertex = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const tesseractFragment = `
+  varying vec2 vUv;
+  uniform float uTime;
+
+  void main() {
+    // Simulated camera moving infinitely forward through the grid
+    vec3 ro = vec3(0.0, 0.0, uTime * 2.0); 
+    vec2 p = vUv * 2.0 - 1.0;
+    vec3 rd = normalize(vec3(p, 1.0)); // ray direction
+
+    vec3 col = vec3(0.0);
+    float t = 0.0;
+    
+    // Raymarching loop
+    for(int i = 0; i < 40; i++) {
+        vec3 pos = ro + rd * t;
+        
+        // Modulo operator creates the infinite repeating grid lines
+        vec3 q = mod(pos, 10.0) - 5.0; 
+        float d = length(q) - 0.1; // 0.1 is the thickness of the lines
+        
+        if(d < 0.01) {
+            // Violet/Gold glowing grid fading into the distance
+            col = vec3(0.6, 0.2, 0.9) * (1.0 - t/40.0); 
+            break;
+        }
+        t += d;
+    }
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+// ─── 2. MAIN COMPONENT ─────────────────────────────────────────────
+export default function Singularity() {
+  const orbRef = useRef<THREE.Mesh>(null);
+  const tesseractMatRef = useRef<THREE.ShaderMaterial>(null);
+  
+  const { camera } = useThree();
+  const setBloom = useVoyageStore((state) => state.setBloom);
+  const resetVoyage = useVoyageStore((state) => state.resetVoyage);
+
+  // ─── Animation Loop ───
+  useFrame((state) => {
+    // Pulse the emissive intensity of the orb
+    if (orbRef.current) {
+      const mat = orbRef.current.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 2 + Math.sin(state.clock.elapsedTime * 3) * 1.5;
+    }
+
+    // Animate the raymarching grid
+    if (tesseractMatRef.current) {
+      tesseractMatRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    }
+  });
+
+  // ─── Interaction: Time Loop ───
+  const handleTimeLoop = () => {
+    // Reset cursor
+    document.body.style.cursor = "auto";
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        // Reset everything back to the Evening Launchpad
+        resetVoyage(); 
+      }
+    });
+
+    // 1. Violently pull the camera backward through the grid
+    tl.to(camera.position, { 
+      z: "+=150", 
+      duration: 1.2, 
+      ease: "power3.in" 
+    }, 0);
+
+    // 2. Flash the Bloom to pure white right before the timeline ends
+    tl.to({ b: 1.5, t: 0.8 }, {
+      b: 25.0, 
+      t: 0.0, 
+      duration: 0.8, 
+      ease: "expo.in",
+      onUpdate: function() { 
+        setBloom(this.targets()[0].b, this.targets()[0].t); 
+      }
+    }, 0.4);
+  };
+
+  return (
+    <group position={[0, 0, -1000]}> {/* Deep space coordinate */}
+      
+      {/* ── 3D TESSERACT BACKGROUND ── */}
+      <mesh scale={500}>
+        <sphereGeometry args={[1, 32, 32]} />
+        <shaderMaterial 
+          ref={tesseractMatRef}
+          vertexShader={tesseractVertex}
+          fragmentShader={tesseractFragment} 
+          uniforms={{ uTime: { value: 0 } }}
+          side={THREE.BackSide} // Render on the inside of the sphere
+        />
+      </mesh>
+
+      {/* ── HEAVY GLASS UI PANE ── */}
+      <RoundedBox args={[12, 16, 0.5]} radius={0.5} position={[-8, 0, -20]}>
+        <meshPhysicalMaterial 
+          transmission={0.9} 
+          roughness={0.1} 
+          ior={1.5} 
+          thickness={2.0} 
+          color="#000000"
+        />
+        
+        {/* Project HTML onto the glass */}
+        <Html transform position={[0, 0, 0.3]} className="pointer-events-none select-none">
+          <div className="text-white w-96 p-8 bg-black/30 backdrop-blur-md rounded-xl border border-white/10 shadow-[0_0_40px_rgba(167,139,250,0.15)]">
+            <h2 className="font-display text-4xl mb-4 text-violet-400 uppercase tracking-widest">
+              End of Line
+            </h2>
+            <p className="font-sans text-sm text-white/60 mb-6 leading-relaxed">
+              You have crossed the event horizon. My core systems and operational history are laid bare.
+            </p>
+            <div className="flex flex-col gap-3 font-mono text-xs text-white/80 uppercase tracking-wider">
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span>React / Next.js</span> <span>98%</span>
+              </div>
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span>WebGL / R3F</span> <span>92%</span>
+              </div>
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span>Node.js</span> <span>88%</span>
+              </div>
+            </div>
+            
+            <a 
+              href="mailto:kunal@example.com" 
+              className="mt-8 block text-center border border-violet-500/50 text-violet-300 py-3 uppercase tracking-widest text-xs pointer-events-auto hover:bg-violet-500/10 transition-colors"
+            >
+              Establish Comms ↗
+            </a>
+          </div>
+        </Html>
+      </RoundedBox>
+
+      {/* ── THE TIME LOOP ORB ── */}
+      <mesh 
+        ref={orbRef} 
+        position={[4, -2, -25]} 
+        onClick={handleTimeLoop}
+        onPointerOver={() => (document.body.style.cursor = "pointer")}
+        onPointerOut={() => (document.body.style.cursor = "auto")}
+      >
+        <icosahedronGeometry args={[2, 2]} />
+        <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={2} />
+        
+        {/* Orb Floating Label */}
+        <Html position={[0, 3.5, 0]} center className="pointer-events-none">
+          <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-white/60 whitespace-nowrap">
+            Initiate Time Loop
+          </p>
+        </Html>
+      </mesh>
+
+      {/* Scene Lighting for the Pane / Orb */}
+      <ambientLight intensity={0.5} />
+      <pointLight position={[10, 10, -10]} intensity={2} color="#a78bfa" />
+
+    </group>
+  );
+}
+
+//src/components/canvas/astronaut.tsx
+
+// components/canvas/Astronaut.tsx
+"use client";
+
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import { useVoyageStore } from "@/store/useVoyageStore";
+
+// Reusing your original custom colors
 const WHITE  = new THREE.Color("#e8eef4");
 const DARK   = new THREE.Color("#2d3748");
 const VISOR  = new THREE.Color("#fbbf24");
@@ -293,139 +477,230 @@ function SharedMat({ color }: { color: THREE.Color }) {
   return <meshStandardMaterial color={color} metalness={0.4} roughness={0.35} />;
 }
 
-const Astronaut = forwardRef<THREE.Group>((_, ref) => {
+export default function Astronaut() {
+  const groupRef = useRef<THREE.Group>(null);
   const bodyRef  = useRef<THREE.Group>(null);
   const headRef  = useRef<THREE.Group>(null);
   const lArmRef  = useRef<THREE.Mesh>(null);
   const rArmRef  = useRef<THREE.Mesh>(null);
-  const innerRef = useRef<THREE.Group>(null);
+  
+  const phase = useVoyageStore((state) => state.phase);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
+    if (!groupRef.current) return;
+
+    // 1. FLOAT IN FRONT OF CAMERA
+    // The astronaut hides during the launchpad and liftoff phases
+    const isVisible = phase !== 'PAD' && phase !== 'LIFTOFF';
+    
+    // Smoothly scale the astronaut up when it appears in the Void
+    const targetScale = isVisible ? 1 : 0;
+    groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 4);
+
+    // Always follow the camera with an offset (Z -5, Y -1.5)
+    const targetPos = state.camera.position.clone().add(new THREE.Vector3(0, -1.5, -5));
+    groupRef.current.position.lerp(targetPos, delta * 4);
+
+    // Make the entire group face the same way as the camera
+    groupRef.current.quaternion.slerp(state.camera.quaternion, delta * 3);
+
+    // 2. ZERO-GRAVITY IDLE ANIMATION
     const t = state.clock.getElapsedTime();
-
-    // Idle float & gentle roll
-    if (innerRef.current) {
-      innerRef.current.position.y = Math.sin(t * 0.8) * 0.12;
-      innerRef.current.rotation.z = Math.sin(t * 0.4) * 0.04;
-    }
-
-    // Mouse-look
-    const mx = state.mouse.x;
-    const my = state.mouse.y;
+    const mx = state.pointer.x; // Mouse X (-1 to 1)
+    const my = state.pointer.y; // Mouse Y (-1 to 1)
 
     if (bodyRef.current) {
-      bodyRef.current.rotation.y = THREE.MathUtils.lerp(
-        bodyRef.current.rotation.y, mx * 0.5, 0.07
-      );
-    }
-    if (headRef.current) {
-      headRef.current.rotation.y = THREE.MathUtils.lerp(
-        headRef.current.rotation.y, mx * 1.3, 0.07
-      );
-      headRef.current.rotation.x = THREE.MathUtils.lerp(
-        headRef.current.rotation.x, -my * 0.3, 0.07
-      );
+      // Body gently bobs up and down and tracks mouse slightly
+      bodyRef.current.position.y = Math.sin(t * 0.8) * 0.1;
+      bodyRef.current.rotation.z = Math.sin(t * 0.4) * 0.03;
+      bodyRef.current.rotation.y = THREE.MathUtils.lerp(bodyRef.current.rotation.y, mx * 0.5, 0.07);
     }
 
-    // Arm sway
+    if (headRef.current) {
+      // Head tracks the mouse aggressively
+      headRef.current.rotation.y = THREE.MathUtils.lerp(headRef.current.rotation.y, mx * 1.2, 0.08);
+      headRef.current.rotation.x = THREE.MathUtils.lerp(headRef.current.rotation.x, -my * 0.5, 0.08);
+    }
+
+    // Arms float organically
     if (lArmRef.current) lArmRef.current.rotation.z = -0.3 + Math.sin(t * 0.8) * 0.06;
     if (rArmRef.current) rArmRef.current.rotation.z =  0.3 - Math.sin(t * 0.8) * 0.06;
   });
 
   return (
-    <group ref={ref}>
-      <group ref={innerRef}>
-        <group ref={bodyRef}>
-          {/* ── Torso ── */}
-          <mesh position={[0, 0, 0]} castShadow>
-            <boxGeometry args={[0.65, 0.84, 0.54]} />
+    <group ref={groupRef} scale={0}>
+      <group ref={bodyRef}>
+        {/* Torso */}
+        <mesh position={[0, 0, 0]} castShadow>
+          <boxGeometry args={[0.65, 0.84, 0.54]} />
+          <SharedMat color={WHITE} />
+        </mesh>
+
+        {/* Chest insignia stripe */}
+        <mesh position={[0, 0.12, 0.28]}>
+          <boxGeometry args={[0.28, 0.06, 0.02]} />
+          <meshStandardMaterial color={STRIPE} emissive={STRIPE} emissiveIntensity={2} />
+        </mesh>
+
+        {/* Life-support pack */}
+        <mesh position={[0, 0.05, -0.34]} castShadow>
+          <boxGeometry args={[0.44, 0.64, 0.20]} />
+          <meshStandardMaterial color={ACCENT} metalness={0.7} roughness={0.3} />
+        </mesh>
+
+        {/* Helmet */}
+        <group ref={headRef} position={[0, 0.66, 0]}>
+          <mesh castShadow>
+            <sphereGeometry args={[0.29, 48, 48]} />
             <SharedMat color={WHITE} />
           </mesh>
-
-          {/* Chest insignia stripe */}
-          <mesh position={[0, 0.12, 0.28]}>
-            <boxGeometry args={[0.28, 0.06, 0.02]} />
-            <meshStandardMaterial color={STRIPE} emissive={STRIPE} emissiveIntensity={2} />
+          <mesh position={[0, 0.02, 0.14]}>
+            <sphereGeometry args={[0.20, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+            <meshStandardMaterial color={VISOR} metalness={1} roughness={0} />
           </mesh>
-
-          {/* Life-support pack */}
-          <mesh position={[0, 0.05, -0.34]} castShadow>
-            <boxGeometry args={[0.44, 0.64, 0.20]} />
-            <meshStandardMaterial color={ACCENT} metalness={0.7} roughness={0.3} />
-          </mesh>
-          {/* Pack indicator lights */}
-          {[-0.1, 0.1].map((x, i) => (
-            <mesh key={i} position={[x, -0.05, -0.45]}>
-              <boxGeometry args={[0.05, 0.22, 0.04]} />
-              <meshStandardMaterial color={STRIPE} emissive={STRIPE} emissiveIntensity={3} />
-            </mesh>
-          ))}
-
-          {/* ── Helmet ── */}
-          <group ref={headRef} position={[0, 0.66, 0]}>
-            <mesh castShadow>
-              <sphereGeometry args={[0.29, 48, 48]} />
-              <SharedMat color={WHITE} />
-            </mesh>
-            {/* Gold visor */}
-            <mesh position={[0, 0.02, 0.14]}>
-              <sphereGeometry args={[0.20, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
-              <meshStandardMaterial color={VISOR} metalness={1} roughness={0} />
-            </mesh>
-            {/* Helmet lamp */}
-            <pointLight position={[0, 0, 0.32]} intensity={1.2} distance={7} color="#fbbf24" />
-          </group>
-
-          {/* ── Arms ── */}
-          <mesh ref={lArmRef} position={[-0.44, 0.14, 0]} rotation={[0, 0, -0.3]} castShadow>
-            <capsuleGeometry args={[0.1, 0.42, 4, 8]} />
-            <SharedMat color={WHITE} />
-          </mesh>
-          <mesh ref={rArmRef} position={[ 0.44, 0.14, 0]} rotation={[0, 0,  0.3]} castShadow>
-            <capsuleGeometry args={[0.1, 0.42, 4, 8]} />
-            <SharedMat color={WHITE} />
-          </mesh>
-
-          {/* Gloves */}
-          {[-0.46, 0.46].map((x, i) => (
-            <mesh key={i} position={[x, -0.14, 0]}>
-              <sphereGeometry args={[0.11, 16, 16]} />
-              <meshStandardMaterial color={DARK} metalness={0.5} roughness={0.4} />
-            </mesh>
-          ))}
-
-          {/* ── Legs ── */}
-          {[-0.18, 0.18].map((x, i) => (
-            <mesh key={i} position={[x, -0.63, 0]} castShadow>
-              <capsuleGeometry args={[0.13, 0.44, 4, 8]} />
-              <meshStandardMaterial color={new THREE.Color("#c8d5e0")} metalness={0.2} roughness={0.5} />
-            </mesh>
-          ))}
-
-          {/* Boots */}
-          {[-0.18, 0.18].map((x, i) => (
-            <mesh key={i} position={[x, -0.97, 0.05]}>
-              <boxGeometry args={[0.22, 0.13, 0.30]} />
-              <meshStandardMaterial color={DARK} metalness={0.6} roughness={0.3} />
-            </mesh>
-          ))}
+          <pointLight position={[0, 0, 0.32]} intensity={1.2} distance={7} color="#fbbf24" />
         </group>
+
+        {/* Arms */}
+        <mesh ref={lArmRef} position={[-0.44, 0.14, 0]} rotation={[0, 0, -0.3]} castShadow>
+          <capsuleGeometry args={[0.1, 0.42, 4, 8]} />
+          <SharedMat color={WHITE} />
+        </mesh>
+        <mesh ref={rArmRef} position={[ 0.44, 0.14, 0]} rotation={[0, 0,  0.3]} castShadow>
+          <capsuleGeometry args={[0.1, 0.42, 4, 8]} />
+          <SharedMat color={WHITE} />
+        </mesh>
+
+        {/* Legs */}
+        {[-0.18, 0.18].map((x, i) => (
+          <mesh key={i} position={[x, -0.63, 0]} castShadow>
+            <capsuleGeometry args={[0.13, 0.44, 4, 8]} />
+            <meshStandardMaterial color={new THREE.Color("#c8d5e0")} metalness={0.2} roughness={0.5} />
+          </mesh>
+        ))}
       </group>
     </group>
   );
-});
+}
 
-Astronaut.displayName = "Astronaut";
-export default Astronaut;
+//src/components/canvas/CinematicController.tsx
 
-#CityLaunch.tsx#
+// components/canvas/CinematicController.tsx
+"use client";
 
-// ─────────────────────────────────────────────────────────────
-//  CityLaunch  –  procedural city skyline + atmosphere
-//  Fix: removed useMemo-on-ref anti-pattern.
-//       Uses pre-computed merged BufferGeometry – stable, no
-//       InstancedMesh ref timing issues.
-// ─────────────────────────────────────────────────────────────
+import { useEffect, useRef } from "react";
+import { useThree } from "@react-three/fiber";
+import gsap from "gsap";
+import * as THREE from "three"; // <-- ADDED THIS LINE
+import { useVoyageStore, Phase } from "@/store/useVoyageStore";
+
+export default function CinematicController() {
+  const { camera } = useThree();
+  const phase = useVoyageStore((state) => state.phase);
+  const setPhase = useVoyageStore((state) => state.setPhase);
+  const setBloom = useVoyageStore((state) => state.setBloom);
+  
+  // Ref to prevent overlapping scroll animations
+  const isAnimating = useRef(false);
+
+  useEffect(() => {
+    const handleScroll = (e: WheelEvent) => {
+      if (isAnimating.current) return;
+
+      const scrollingDown = e.deltaY > 0;
+      
+      // TRIGGER THE NEXT PHASE BASED ON SCROLL DIRECTION
+      if (scrollingDown) {
+        if (phase === 'PAD') triggerLaunch();
+        else if (phase === 'VOID') transitionTo('PLANET', { x: 30, y: 10, z: -200 });
+        else if (phase === 'PLANET') transitionTo('NEBULA', { x: -35, y: 0, z: -500 });
+        else if (phase === 'NEBULA') transitionTo('SINGULARITY', { x: 0, y: 0, z: -1000 });
+      }
+    };
+
+    window.addEventListener("wheel", handleScroll, { passive: false });
+    return () => window.removeEventListener("wheel", handleScroll);
+  }, [phase]);
+
+  // ─── 1. THE CAMERA PUNCH-IN ILLUSION (PAD -> VOID) ───
+  const triggerLaunch = () => {
+    isAnimating.current = true;
+    setPhase('LIFTOFF');
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setPhase('VOID');
+        
+        // Reset the camera completely after the flash, moving it to Deep Space start
+        camera.position.set(0, 0, -50); 
+        camera.rotation.set(0, 0, 0);
+
+        // Fade bloom back to normal
+        gsap.to({ b: 15 }, { 
+          b: 1.5, 
+          duration: 1.5, 
+          onUpdate: function() { setBloom(this.targets()[0].b, 0.8) } 
+        });
+        
+        isAnimating.current = false;
+      }
+    });
+
+    // Camera accelerates up and crashes into nosecone
+    tl.to(camera.position, { y: 150, z: -5, duration: 3, ease: "power4.in" }, 0);
+    
+    // Violent camera shake during launch
+    tl.to(camera.rotation, {
+      x: () => `+=${Math.random() * 0.1 - 0.05}`,
+      z: () => `+=${Math.random() * 0.1 - 0.05}`,
+      yoyo: true, 
+      repeat: 30, 
+      duration: 0.1
+    }, 0);
+
+    // The Flash - Triggered right before the timeline ends
+    tl.to({ b: 1.5, t: 0.8 }, {
+      b: 25.0, 
+      t: 0.0, 
+      duration: 0.4, 
+      ease: "power2.in",
+      onUpdate: function() { setBloom(this.targets()[0].b, this.targets()[0].t); }
+    }, 2.6);
+  };
+
+  // ─── 2. STANDARD ZONE TRANSITIONS ───
+  const transitionTo = (nextPhase: Phase, targetPos: {x: number, y: number, z: number}) => {
+    isAnimating.current = true;
+
+    // Optional: Add a subtle wormhole warp effect by momentarily boosting FOV
+    gsap.to(camera as THREE.PerspectiveCamera, {
+      fov: 90, 
+      duration: 1, 
+      yoyo: true, 
+      repeat: 1, 
+      ease: "power2.inOut",
+      onUpdate: () => (camera as THREE.PerspectiveCamera).updateProjectionMatrix()
+    });
+
+    // Move camera to new coordinate
+    gsap.to(camera.position, {
+      x: targetPos.x,
+      y: targetPos.y,
+      z: targetPos.z,
+      duration: 2.5,
+      ease: "power2.inOut",
+      onComplete: () => {
+        setPhase(nextPhase);
+        isAnimating.current = false;
+      }
+    });
+  };
+
+  return null;
+}
+
+//src/components/canvas/CityLaunch.tsx
+
 "use client";
 
 import { useMemo, useRef } from "react";
@@ -609,7 +884,7 @@ export default function CityLaunch({
   );
 }
 
-#FlightController.tsx#
+//src/components/canvas/FlightController.tsx
 
 // ─────────────────────────────────────────────────────────────
 //  FlightController  –  camera + astronaut path driver
@@ -666,14 +941,13 @@ export default function FlightController({
         new THREE.Vector3(  0,   0, -985),  // 0.82 BH proximity ← auto-scroll fires
         new THREE.Vector3( -8,   6,-1100),  // 0.90 ejected from BH
         new THREE.Vector3(  0,   2,-1250),  // 1.00 deep space / contact
-      ], false, "catmullrom", 0.5),
-    []
+      ], false, "catmullrom", 0.5),[]
   );
 
   const smoothT     = useRef(0);
   const lastZone    = useRef<string | null>(null);
   const lastMounts  = useRef<string>("");   // serialised set for cheap compare
-  const OFFSET      = useMemo(() => new THREE.Vector3(0, 2.5, 9), []);
+  const OFFSET      = useMemo(() => new THREE.Vector3(0, 2.5, 9),[]);
   const LOOK_AHEAD  = 0.012;
 
   // ── Cancel auto-scroll if user manually scrolls ────────────
@@ -691,7 +965,7 @@ export default function FlightController({
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  },[]);
 
   useFrame((state, delta) => {
     // ── 1. Auto-scroll: gravitational pull toward black hole ──
@@ -762,7 +1036,7 @@ export default function FlightController({
   return null;
 }
 
-#ParticleField.tsx#
+//src/components/canvas/ParticleField.tsx
 
 // ─────────────────────────────────────────────────────────────
 //  ParticleField  –  instanced lightweight star field
@@ -850,136 +1124,60 @@ export default function ParticleField({
   );
 }
 
-#Scene.tsx#
+//src/components/canvas/scene.tsx
 
-// ─────────────────────────────────────────────────────────────
-//  Scene  –  R3F Canvas root
-//
-//  NEW: receives activeMounts from FlightController and
-//  conditionally renders world objects so max 2 are alive.
-//  Wormholes between zones mask the mount/unmount transitions.
-// ─────────────────────────────────────────────────────────────
+// components/canvas/Scene.tsx
 "use client";
 
-import React, { useRef, useState, useCallback, Suspense } from "react";
-import { Canvas }          from "@react-three/fiber";
-import { PerspectiveCamera } from "@react-three/drei";
-import {
-  EffectComposer, Bloom, Vignette, ChromaticAberration,
-} from "@react-three/postprocessing";
-import { BlendFunction }   from "postprocessing";
-import * as THREE          from "three";
+import { Suspense } from "react";
+import { Canvas } from "@react-three/fiber";
 
-import FlightController  from "./FlightController";
-import Astronaut         from "./Astronaut";
-import CityLaunch        from "./CityLaunch";
-import ParticleField     from "./ParticleField";
-import Wormhole          from "./Wormhole";
-import { HeroPlanet, NebulaCluster, ProjectCrystals, BlackHole } from "./World";
+// MUST HAVE BRACKETS: These are named exports from the library
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 
-interface SceneProps {
-  progressRef:  React.MutableRefObject<number>;
-  onZoneChange: (zone: string | null) => void;
-}
+// MUST HAVE BRACKETS: This is a named export from your store
+import { useVoyageStore } from "@/store/useVoyageStore";
 
-export default function Scene({ progressRef, onZoneChange }: SceneProps) {
-  const astronautRef                        = useRef<THREE.Group>(null);
-  const [activeMounts, setActiveMounts]     = useState<Set<string>>(
-    () => new Set(["stars", "city"])
-  );
+// MUST HAVE NO BRACKETS: These are Default exports from your files
+import CinematicController from "./CinematicController";
+import Astronaut from "./Astronaut";
+import LaunchPad from "./zones/LaunchPad"; 
+import Singularity from "./zones/Singularity";
 
-  const handleMountChange = useCallback((mounts: Set<string>) => {
-    setActiveMounts(new Set(mounts)); // new Set forces re-render
-  }, []);
+export default function Scene() {
+  const phase = useVoyageStore((state) => state.phase);
+  const bloomIntensity = useVoyageStore((state) => state.bloomIntensity);
+  const bloomThreshold = useVoyageStore((state) => state.bloomThreshold);
 
   return (
     <Canvas
-      gl={{
-        antialias:          true,
-        powerPreference:    "high-performance",
-        toneMapping:        THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.1,
-      }}
-      dpr={[1, 1.5]}
-      shadows={false}
+      gl={{ antialias: true, powerPreference: "high-performance" }}
+      camera={{ position: [0, 2, 15], fov: 60 }}
     >
       <color attach="background" args={["#000000"]} />
-      <fogExp2 attach="fog" args={["#010206", 0.0007]} />
-
-      <PerspectiveCamera makeDefault position={[0, -57, 10]} fov={68} near={0.2} far={6000} />
-
-      {/* Lighting */}
-      <ambientLight intensity={0.22} />
-      <directionalLight position={[60, 100, 40]} intensity={1.2} color="#dde8ff" />
-      <pointLight position={[-80, 40, -200]} intensity={3}  color="#7c3aed" />
-      <pointLight position={[ 80, -30,-400]} intensity={2}  color="#38bdf8" />
+      
+      {/* If the error persists, comment these out one-by-one to find the culprit */}
+      <CinematicController />
+      <Astronaut />
 
       <Suspense fallback={null}>
-        {/* ── Stars: always mounted ── */}
-        <ParticleField count={3500} spread={2200} zOffset={-600} size={1.4} />
-        <ParticleField count={600}  spread={350}  zOffset={0}    size={0.9} color="#ffe8c0" drift={0} />
-
-        {/* ── Lazy world objects ── */}
-        {activeMounts.has("city")      && <CityLaunch progress={progressRef} />}
-        {activeMounts.has("planet")    && <HeroPlanet />}
-        {activeMounts.has("nebula")    && <NebulaCluster />}
-        {activeMounts.has("crystals")  && <ProjectCrystals />}
-        {activeMounts.has("blackhole") && <BlackHole />}
-
-        {/* ── Wormholes between zones ── */}
-        {activeMounts.has("wormhole-1") && (
-          <Wormhole
-            position={[4, 35, -130]}
-            progressRef={progressRef}
-            enterAt={0.14} exitAt={0.24}
-            color="#38bdf8"
-          />
-        )}
-        {activeMounts.has("wormhole-2") && (
-          <Wormhole
-            position={[12, 4, -430]}
-            progressRef={progressRef}
-            enterAt={0.40} exitAt={0.50}
-            color="#a78bfa"
-          />
-        )}
-        {activeMounts.has("wormhole-3") && (
-          <Wormhole
-            position={[8, -10, -745]}
-            progressRef={progressRef}
-            enterAt={0.70} exitAt={0.80}
-            color="#fb923c"
-          />
-        )}
+        {(phase === 'PAD' || phase === 'LIFTOFF') && <LaunchPad />}
+        {phase === 'SINGULARITY' && <Singularity />}
       </Suspense>
 
-      {/* Astronaut (always mounted, moved by FlightController) */}
-      <group ref={astronautRef}>
-        <Astronaut />
-      </group>
-
-      {/* Flight + auto-scroll + mount detection */}
-      <FlightController
-        astronautRef={astronautRef}
-        progressRef={progressRef}
-        onZoneChange={onZoneChange}
-        onMountChange={handleMountChange}
-      />
-
-      {/* Post-processing */}
       <EffectComposer>
-        <Bloom intensity={1.3} luminanceThreshold={0.05} luminanceSmoothing={0.8} mipmapBlur />
-        <ChromaticAberration
-          blendFunction={BlendFunction.NORMAL}
-          offset={new THREE.Vector2(0.0003, 0.0003)}
+        <Bloom 
+          intensity={bloomIntensity} 
+          luminanceThreshold={bloomThreshold} 
+          luminanceSmoothing={0.9} 
+          mipmapBlur 
         />
-        <Vignette eskil={false} offset={0.3} darkness={0.65} />
       </EffectComposer>
     </Canvas>
   );
 }
 
-#World.tsx#
+//src/components/canvas/World.tsx
 
 // ─────────────────────────────────────────────────────────────
 //  World  –  lazy-mounted zone components
@@ -1229,7 +1427,7 @@ export function BlackHole() {
   );
 }
 
-#Wormhole.tsx#
+//src/components/canvas/Wormhole.tsx
 
 // Wormhole.tsx — fixed: removed unused useMemo, proper TS types on geometry args
 "use client";
@@ -1321,7 +1519,7 @@ export default function Wormhole({
   );
 }
 
-#DataPanel.tsx#
+//src/components/ui/DataPanel.tsx
 
 // ─────────────────────────────────────────────────────────────
 //  DataPanel  –  cinematic overlay that fades in when camera
@@ -1590,7 +1788,7 @@ export default function DataPanels({ activeZone }: { activeZone: string | null }
   );
 }
 
-#HUD_Overlay.tsx#
+//src/components/ui/HUD_Overlay.tsx
 
 // ─────────────────────────────────────────────────────────────
 //  HUD_Overlay  –  minimal ambient overlay
@@ -1752,7 +1950,7 @@ export default function HUD_Overlay() {
   );
 }
 
-#Loader.tsx#
+//src/components/ui/Loader.tsx
 
 // ─────────────────────────────────────────────────────────────
 //  Loader  –  CSS-animated astronaut bouncing in low gravity
@@ -2001,7 +2199,7 @@ export default function Loader({ onComplete }: Props) {
   );
 }
 
-#Portfolio.ts#
+//src/components/data/portfolio.tsx
 
 // ─────────────────────────────────────────────────────────────
 //  PORTFOLIO DATA  –  single source of truth
@@ -2091,21 +2289,12 @@ export const portfolioData = {
 
 export type Project = (typeof portfolioData.projects)[number];
 
-#useScrollEngine.ts#
 
-// ─────────────────────────────────────────────────────────────
-//  useScrollEngine  –  single source of scroll truth
-//
-//  Returns a ref whose `.current` is ALWAYS the latest smoothed
-//  progress value (0 → 1).  Safe to read inside R3F useFrame
-//  without stale closures or spring/spring lag.
-//
-//  Smoothing is done in a rAF loop using a simple lerp so it
-//  *never* conflicts with Three.js's own render loop.
-// ─────────────────────────────────────────────────────────────
+//src/components/hooks/useScrollEngine.tsx
+
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 export interface ScrollEngine {
   /** Latest SMOOTHED progress 0→1 – read this inside useFrame */
@@ -2132,17 +2321,16 @@ export function useScrollEngine(smoothing = 0.06): ScrollEngine {
     onScroll(); // initialise immediately
 
     // ── 2. Smooth in rAF (independent of Three.js) ──────────
-    //  Using a fixed lerp factor per frame gives Sebastian-style
-    //  cinematic smoothing without framer-motion springs.
+    //  Using a fixed lerp factor per frame gives cinematic smoothing
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
     let lastTime = performance.now();
 
     const tick = (now: number) => {
-      const delta = Math.min((now - lastTime) / 16.667, 3); // cap at 3× to avoid huge jumps after tab switch
+      const delta = Math.min((now - lastTime) / 16.667, 3); // cap at 3×
       lastTime = now;
 
-      // delta-compensated lerp so smoothing is frame-rate independent
+      // delta-compensated lerp
       const factor = 1 - Math.pow(1 - smoothing, delta);
       progressRef.current = lerp(progressRef.current, rawRef.current, factor);
 
@@ -2171,7 +2359,7 @@ export interface Zone {
 }
 
 /** All narrative zones along the scroll journey (0 → 1) */
-export const ZONES: Zone[] = [
+export const ZONES: Zone[] =[
   { id: "launch",    enter: 0.00, exit: 0.14 }, // city → atmosphere
   { id: "void",      enter: 0.15, exit: 0.28 }, // "who I am"
   { id: "project-1", enter: 0.30, exit: 0.43 }, // planet 1
@@ -2197,3 +2385,54 @@ export function zoneAlpha(zone: Zone, progress: number): number {
   const fadeOut = Math.min((zone.exit - progress)  / fadeDuration, 1);
   return Math.min(fadeIn, fadeOut);
 }
+
+export function getActiveMounts(progress: number): Set<string> {
+  const mounts = new Set<string>();
+
+  // Using overlapping ranges to ensure models mount slightly before they are seen 
+  // and unmount slightly after passing, to prevent visual pop-in/pop-out.
+  if (progress >= 0.00 && progress <= 0.16) mounts.add("city");
+  if (progress >= 0.13 && progress <= 0.26) mounts.add("wormhole-1");
+  if (progress >= 0.18 && progress <= 0.48) mounts.add("planet");
+  if (progress >= 0.38 && progress <= 0.52) mounts.add("wormhole-2");
+  if (progress >= 0.44 && progress <= 0.72) mounts.add("nebula");
+  if (progress >= 0.58 && progress <= 0.78) mounts.add("crystals");
+  if (progress >= 0.68 && progress <= 0.82) mounts.add("wormhole-3");
+  if (progress >= 0.74 && progress <= 1.00) mounts.add("blackhole");
+
+  return mounts;
+}
+
+//src/components/store/useVoyageStore.tsx
+
+// store/useVoyageStore.ts
+import { create } from 'zustand';
+
+export type Phase = 'LOADING' | 'PAD' | 'LIFTOFF' | 'VOID' | 'PLANET' | 'WORMHOLE' | 'NEBULA' | 'SINGULARITY';
+
+interface VoyageState {
+  phase: Phase;
+  scrollProgress: number;
+  bloomIntensity: number;
+  bloomThreshold: number;
+  setPhase: (phase: Phase) => void;
+  setScrollProgress: (progress: number) => void;
+  setBloom: (intensity: number, threshold: number) => void;
+  resetVoyage: () => void;
+}
+
+export const useVoyageStore = create<VoyageState>((set) => ({
+  phase: 'PAD',
+  scrollProgress: 0,
+  bloomIntensity: 1.5,
+  bloomThreshold: 0.8,
+  setPhase: (phase) => set({ phase }),
+  setScrollProgress: (scrollProgress) => set({ scrollProgress }),
+  setBloom: (bloomIntensity, bloomThreshold) => set({ bloomIntensity, bloomThreshold }),
+  resetVoyage: () => set({ 
+    phase: 'PAD', 
+    scrollProgress: 0, 
+    bloomIntensity: 1.5, 
+    bloomThreshold: 0.8 
+  }),
+}));
