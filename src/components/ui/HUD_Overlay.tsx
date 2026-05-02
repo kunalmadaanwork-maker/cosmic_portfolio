@@ -1,101 +1,67 @@
-// ─────────────────────────────────────────────────────────────
-//  HUD_Overlay  –  minimal ambient overlay
-//  Intentionally subtle – the universe is the hero.
-//  No cockpit chrome, no robot panels.
-// ─────────────────────────────────────────────────────────────
+// src/components/ui/HUD_Overlay.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ZONES } from "@/hooks/useScrollEngine";
-import { portfolioData } from "@/data/portfolio";
+import { useVoyageStore, Phase } from "@/store/useVoyageStore";
 
-// Zone labels shown as a small indicator when entering a zone
-const ZONE_LABELS: Record<string, string> = {
-  launch:      "Launching from Earth",
-  void:        "Open Space",
-  "project-1": "Nebula UI",
-  skills:      "Systems Online",
-  "project-2": "Orbit Engine",
-  "project-3": "Singularity API",
-  experience:  "Mission Log",
-  contact:     "Deep Space",
+const HUD_PHASES: Phase[] =['PAD', 'VOID', 'PLANET', 'NEBULA', 'SINGULARITY'];
+
+const PHASE_LABELS: Record<string, string> = {
+  PAD: "Earth Launchpad",
+  LIFTOFF: "Ascension",
+  VOID: "Deep Space",
+  PLANET: "Exoplanet Orbit",
+  NEBULA: "Volumetric Nebula",
+  SINGULARITY: "Event Horizon",
 };
 
 export default function HUD_Overlay() {
-  const [progress, setProgress]       = useState(0);
-  const [activeZone, setActiveZone]   = useState<string | null>(null);
-  const [showLabel, setShowLabel]     = useState(false);
-  const [labelText, setLabelText]     = useState("");
-  const labelTimerRef                 = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const rafRef                        = useRef<number>(0);
-  const lastZoneRef                   = useRef<string | null>(null);
+  const phase = useVoyageStore((state) => state.phase);
+  
+  const [showLabel, setShowLabel] = useState(false);
+  const [labelText, setLabelText] = useState("");
+  const labelTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Track scroll progress for the dots
+  const currentIndex = HUD_PHASES.indexOf(phase);
+  const progressPct = currentIndex >= 0 ? (currentIndex / (HUD_PHASES.length - 1)) * 100 : 0;
+
   useEffect(() => {
-    const tick = () => {
-      const scrollTop = window.scrollY;
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const p = maxScroll > 0 ? scrollTop / maxScroll : 0;
-      setProgress(p);
+    if (phase === 'LOADING') return;
 
-      // Determine zone from progress
-      let zone: string | null = null;
-      for (const z of ZONES) {
-        if (p >= z.enter && p <= z.exit) { zone = z.id; break; }
-      }
-      setActiveZone(zone);
+    setLabelText(PHASE_LABELS[phase] || "");
+    setShowLabel(true);
+    
+    if (labelTimerRef.current) clearTimeout(labelTimerRef.current);
+    labelTimerRef.current = setTimeout(() => setShowLabel(false), 2500);
 
-      // Flash label on zone entry
-      if (zone && zone !== lastZoneRef.current) {
-        lastZoneRef.current = zone;
-        setLabelText(ZONE_LABELS[zone] ?? "");
-        setShowLabel(true);
-        if (labelTimerRef.current) clearTimeout(labelTimerRef.current);
-        labelTimerRef.current = setTimeout(() => setShowLabel(false), 2200);
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
     return () => {
-      cancelAnimationFrame(rafRef.current);
       if (labelTimerRef.current) clearTimeout(labelTimerRef.current);
     };
-  }, []);
-
-  const pct = Math.round(progress * 100);
+  }, [phase]);
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none select-none">
 
-      {/* ── Name watermark  (top-left) ── */}
-      <div className="absolute top-7 left-8">
-        <p className="font-display text-[11px] uppercase tracking-[0.4em] text-white/18">
-          {portfolioData.name}
-        </p>
-      </div>
-
-      {/* ── Scroll hint (only at very top) ── */}
+      {/* ── Scroll hint (FIXED: Added frosted glass pill for 100% visibility) ── */}
       <AnimatePresence>
-        {progress < 0.03 && (
+        {phase === 'PAD' && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 bg-black/40 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10 shadow-2xl"
           >
-            <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-white/30">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-white drop-shadow-md font-bold">
               Scroll to launch
             </p>
-            {/* Animated chevron */}
-            <svg width="14" height="22" viewBox="0 0 14 22" fill="none">
+            <svg width="16" height="24" viewBox="0 0 14 22" fill="none">
               <motion.path
                 d="M7 1 L7 17 M3 13 L7 17 L11 13"
-                stroke="rgba(255,255,255,0.3)"
-                strokeWidth="1.5"
+                stroke="rgba(255,255,255,1)"
+                strokeWidth="2"
                 strokeLinecap="round"
-                animate={{ y: [0, 4, 0] }}
+                animate={{ y:[0, 5, 0] }}
                 transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
               />
             </svg>
@@ -105,32 +71,32 @@ export default function HUD_Overlay() {
 
       {/* ── Vertical progress bar (right edge) ── */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
-        <div className="w-px h-40 bg-white/6 relative overflow-hidden rounded-full">
+        <div className="w-px h-40 bg-white/10 relative overflow-hidden rounded-full">
           <div
-            className="absolute top-0 left-0 w-full rounded-full transition-none"
+            className="absolute top-0 left-0 w-full rounded-full transition-all duration-1000 ease-in-out"
             style={{
-              height: `${pct}%`,
+              height: `${progressPct}%`,
               background: "linear-gradient(to bottom, #38bdf8, #7c3aed, #fb923c)",
             }}
           />
         </div>
 
-        {/* Zone dots */}
         <div className="flex flex-col gap-2 mt-1">
-          {ZONES.map((z) => {
-            const isActive  = activeZone === z.id;
-            const isPassed  = progress > z.exit;
+          {HUD_PHASES.map((p, index) => {
+            const isActive = phase === p;
+            const isPassed = currentIndex >= index;
             return (
               <div
-                key={z.id}
-                className="w-1 h-1 rounded-full transition-all duration-500"
+                key={p}
+                className="w-1.5 h-1.5 rounded-full transition-all duration-500"
                 style={{
                   background: isActive
                     ? "#38bdf8"
                     : isPassed
-                    ? "rgba(255,255,255,0.25)"
-                    : "rgba(255,255,255,0.08)",
-                  boxShadow: isActive ? "0 0 6px #38bdf8" : "none",
+                    ? "rgba(255,255,255,0.4)"
+                    : "rgba(255,255,255,0.1)",
+                  boxShadow: isActive ? "0 0 8px #38bdf8" : "none",
+                  transform: isActive ? "scale(1.2)" : "scale(1)",
                 }}
               />
             );
@@ -140,15 +106,15 @@ export default function HUD_Overlay() {
 
       {/* ── Zone entry flash label (bottom-centre) ── */}
       <AnimatePresence>
-        {showLabel && (
+        {showLabel && phase !== 'PAD' && (
           <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.45 }}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2"
+            initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, filter: "blur(4px)" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="absolute bottom-12 left-1/2 -translate-x-1/2"
           >
-            <p className="font-mono text-[9px] uppercase tracking-[0.3em] text-white/25">
+            <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-white/50">
               — {labelText} —
             </p>
           </motion.div>
