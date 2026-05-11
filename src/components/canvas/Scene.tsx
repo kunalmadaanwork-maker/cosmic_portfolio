@@ -14,6 +14,7 @@ import ParticleField from "./ParticleField";
 import CityLaunch from "./CityLaunch";
 import HeroPlanet from "./zones/HeroPlanet";
 import Nebula from "./zones/Nebula";
+import BlackHole from "./zones/Blackhole";
 import Singularity from "./zones/Singularity";
 
 function BloomAnimator() {
@@ -44,10 +45,7 @@ export default function Scene() {
       
       <CinematicController />
 
-      {/* ARCHITECTURAL FIX: All components using useGLTF MUST be inside Suspense */}
       <Suspense fallback={null}>
-        
-        {/* The Astronaut is now inside Suspense, so he will actually mount once loaded */}
         <Astronaut />
 
         {(phase === 'LOADING' || phase === 'PAD' || phase === 'LIFTOFF' || phase === 'LANDING') && (
@@ -62,7 +60,12 @@ export default function Scene() {
         )}
 
         {phase === 'VOID' && <HeroPlanet />}
-        {phase === 'PLANET' && <Nebula />}
+        
+        {/* FIXED: Nebula now renders during the BLACKHOLE phase as well, 
+            acting as the background environment for the Black Hole. */}
+        {(phase === 'NEBULA' || phase === 'BLACKHOLE') && <Nebula />}
+        
+        {phase === 'BLACKHOLE' && <BlackHole />}
         {phase === 'SINGULARITY' && <Singularity />}
       </Suspense>
 

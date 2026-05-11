@@ -5,15 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useVoyageStore, Phase } from "@/store/useVoyageStore";
 
-const HUD_PHASES: Phase[] =['PAD', 'VOID', 'PLANET', 'NEBULA', 'SINGULARITY'];
+// FIXED: Progress bar now matches the 4 main narrative stops
+const HUD_PHASES: Phase[] = ['PAD', 'VOID', 'NEBULA', 'BLACKHOLE', 'SINGULARITY'];
 
 const PHASE_LABELS: Record<string, string> = {
   PAD: "Earth Launchpad",
   LIFTOFF: "Ascension",
   VOID: "Deep Space",
-  PLANET: "Exoplanet Orbit",
   NEBULA: "Volumetric Nebula",
-  SINGULARITY: "Event Horizon",
+  BLACKHOLE: "Event Horizon",
+  SINGULARITY: "The Tesseract",
 };
 
 export default function HUD_Overlay() {
@@ -43,7 +44,6 @@ export default function HUD_Overlay() {
   return (
     <div className="fixed inset-0 z-50 pointer-events-none select-none">
 
-      {/* ── Scroll hint (FIXED: Added frosted glass pill for 100% visibility) ── */}
       <AnimatePresence>
         {phase === 'PAD' && (
           <motion.div
@@ -69,7 +69,6 @@ export default function HUD_Overlay() {
         )}
       </AnimatePresence>
 
-      {/* ── Vertical progress bar (right edge) ── */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
         <div className="w-px h-40 bg-white/10 relative overflow-hidden rounded-full">
           <div
@@ -104,7 +103,6 @@ export default function HUD_Overlay() {
         </div>
       </div>
 
-      {/* ── Zone entry flash label (bottom-centre) ── */}
       <AnimatePresence>
         {showLabel && phase !== 'PAD' && (
           <motion.div

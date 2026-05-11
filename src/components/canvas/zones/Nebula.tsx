@@ -7,18 +7,21 @@ import Wormhole from "../Wormhole";
 
 export default function Nebula() {
   return (
-    // Positioned at Z: -300 (Camera arrives at -200)
-    <group position={[0, 0, -300]}>
+    // Positioned at Z: -400
+    <group position={[0, 0, -400]}>
       <ambientLight intensity={1} color="#a78bfa" />
       <pointLight position={[0, 0, 0]} intensity={10} color="#f472b6" distance={100} />
       
-      {/* Volumetric Gas Clouds */}
+      {/* 
+          Symmetric Spacing:
+          Group(-400) + Relative(100) = Total Z(-300).
+          Camera stops at -300, so clouds are exactly where the planet was.
+      */}
       <Clouds material={THREE.MeshBasicMaterial}>
-        <Cloud segments={40} bounds={[30, 10, 30]} volume={20} color="#a78bfa" position={[-15, 0, -10]} opacity={0.4} />
-        <Cloud segments={40} bounds={[30, 10, 30]} volume={20} color="#f472b6" position={[15, 5, -20]} opacity={0.4} />
+        <Cloud segments={40} bounds={[30, 10, 30]} volume={20} color="#a78bfa" position={[-15, 0, 100]} opacity={0.4} />
+        <Cloud segments={40} bounds={[30, 10, 30]} volume={20} color="#f472b6" position={[15, 5, 120]} opacity={0.4} />
       </Clouds>
 
-      {/* Sci-Fi Crystals (Representing your AI Projects) */}
       <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
         <group position={[-10, 0, 0]}>
           <mesh>
@@ -45,8 +48,14 @@ export default function Nebula() {
         </group>
       </Float>
 
-      {/* The Exit Wormhole */}
-      <Wormhole position={[0, -5, -30]} />
+      {/* 
+          Symmetric Spacing:
+          Group(-400) + Relative(-50) = Total Z(-450).
+          Matches the Hero Planet wormhole distance.
+      */}
+      <Wormhole position={[0, 0, -50]} />
+      
+      <ambientLight intensity={0.5} />
     </group>
   );
 }

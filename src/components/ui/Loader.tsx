@@ -154,7 +154,7 @@ export default function Loader({ onComplete }: Props) {
 
       // DIRECT DOM UPDATE: Zero React render lag
       if (progressTextRef.current) {
-        progressTextRef.current.innerText = Math.floor(currentVisualProgress).toString().padStart(3, '0') + '%';
+        progressTextRef.current.innerText = Math.floor(currentVisualProgress) + '%';
       }
       if (progressBarRef.current) {
         progressBarRef.current.style.width = `${currentVisualProgress}%`;
@@ -195,7 +195,7 @@ export default function Loader({ onComplete }: Props) {
             ref={progressTextRef}
             className="text-white font-black text-3xl tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
           >
-            000%
+            0%
           </div>
 
           <div className="w-full h-[2px] bg-white/20 mb-6 rounded-full overflow-hidden">
